@@ -4,20 +4,17 @@ import * as React from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "motion/react"
 import CountUp from "react-countup"
-import { 
+import {
   Zap,
-  RefreshCw, 
-  Bot, 
-  PhoneCall, 
-  CheckCircle2, 
-  Workflow, 
-  Car, 
-  Sparkles, 
-  Scissors, 
-  Wrench, 
-  Stethoscope, 
-  Menu, 
-  X, 
+  RefreshCw,
+  Bot,
+  CheckCircle2,
+  Workflow,
+  Car,
+  Sparkles,
+  Scissors,
+  Wrench,
+  Stethoscope,
   ArrowRight,
   TrendingUp,
   Clock,
@@ -51,16 +48,27 @@ const Reveal = ({ children, delay = 0, className }: { children: React.ReactNode,
 )
 
 export default function LandingPage() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
-  const [formState, setFormState] = React.useState<"idle" | "submitting" | "success">("idle")
+  const [formState, setFormState] = React.useState<"idle" | "submitting" | "success" | "error">("idle")
   const [selectedService, setSelectedService] = React.useState("dbr")
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setFormState("submitting")
-    setTimeout(() => {
+    const data = Object.fromEntries(new FormData(e.currentTarget))
+    const webhookUrl = process.env.NEXT_PUBLIC_FORM_WEBHOOK_URL
+    try {
+      if (webhookUrl) {
+        const res = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        })
+        if (!res.ok) throw new Error("webhook error")
+      }
       setFormState("success")
-    }, 1500)
+    } catch {
+      setFormState("error")
+    }
   }
 
   return (
@@ -773,7 +781,7 @@ export default function LandingPage() {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[80px] rounded-full -z-10" />
                 
                 {formState === "success" ? (
-                   <motion.div 
+                   <motion.div
                      initial={{ opacity: 0, scale: 0.9 }}
                      animate={{ opacity: 1, scale: 1 }}
                      className="h-full min-h-[400px] flex flex-col items-center justify-center text-center py-12"
@@ -784,41 +792,52 @@ export default function LandingPage() {
                      </div>
                      <h3 className="text-3xl font-bold text-white mb-3">Zgłoszenie przyjęte!</h3>
                      <p className="text-slate-400 mb-8 max-w-sm text-lg">Skontaktujemy się z Tobą telefonicznie w ciągu kilkunastu minut na podany numer.</p>
-                     <Button 
-                       variant="outline" 
+                     <Button
+                       variant="outline"
                        onClick={() => setFormState("idle")}
                        className="border-slate-700 text-slate-300 hover:text-white"
                      >
                        Nowe zgłoszenie
                      </Button>
                    </motion.div>
+                ) : formState === "error" ? (
+                   <motion.div
+                     initial={{ opacity: 0, scale: 0.9 }}
+                     animate={{ opacity: 1, scale: 1 }}
+                     className="h-full min-h-[400px] flex flex-col items-center justify-center text-center py-12"
+                   >
+                     <h3 className="text-2xl font-bold text-white mb-3">Coś poszło nie tak</h3>
+                     <p className="text-slate-400 mb-8 max-w-sm">Spróbuj ponownie lub napisz bezpośrednio na <a href="mailto:biuro@automoai.pl" className="text-blue-400 hover:underline">biuro@automoai.pl</a></p>
+                     <Button variant="outline" onClick={() => setFormState("idle")} className="border-slate-700 text-slate-300 hover:text-white">Spróbuj ponownie</Button>
+                   </motion.div>
                 ) : (
                   <form onSubmit={handleFormSubmit} className="space-y-5">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <label htmlFor="name" className="text-sm font-medium text-slate-300">Imię i nazwisko *</label>
-                        <Input id="name" required placeholder="Jan Kowalski" className="h-12 bg-black/40 border-slate-800 focus-visible:ring-blue-500" />
+                        <Input id="name" name="name" required placeholder="Jan Kowalski" className="h-12 bg-black/40 border-slate-800 focus-visible:ring-blue-500" />
                       </div>
                       <div className="space-y-2">
                         <label htmlFor="phone" className="text-sm font-medium text-slate-300">Numer telefonu *</label>
-                        <Input id="phone" required placeholder="+48 000 000 000" type="tel" className="h-12 bg-black/40 border-slate-800 focus-visible:ring-blue-500" />
+                        <Input id="phone" name="phone" required placeholder="+48 000 000 000" type="tel" className="h-12 bg-black/40 border-slate-800 focus-visible:ring-blue-500" />
                       </div>
                     </div>
                     
                     <div className="space-y-2">
                       <label htmlFor="email" className="text-sm font-medium text-slate-300">Biznesowy E-mail *</label>
-                      <Input id="email" required placeholder="kontakt@twojafirma.pl" type="email" className="h-12 bg-black/40 border-slate-800 focus-visible:ring-blue-500" />
+                      <Input id="email" name="email" required placeholder="kontakt@twojafirma.pl" type="email" className="h-12 bg-black/40 border-slate-800 focus-visible:ring-blue-500" />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <label htmlFor="company" className="text-sm font-medium text-slate-300">Nazwa firmy / Strona www</label>
-                        <Input id="company" placeholder="www.twojafirma.pl" className="h-12 bg-black/40 border-slate-800 focus-visible:ring-blue-500" />
+                        <Input id="company" name="company" placeholder="www.twojafirma.pl" className="h-12 bg-black/40 border-slate-800 focus-visible:ring-blue-500" />
                       </div>
                       <div className="space-y-2 flex flex-col justify-end">
                         <label htmlFor="industry" className="text-sm font-medium text-slate-300">W czym działasz?</label>
-                        <select 
+                        <select
                           id="industry"
+                          name="industry"
                           className="flex h-12 w-full rounded-md border border-slate-800 bg-black/40 px-3 py-2 text-sm text-slate-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 transition-colors"
                         >
                           <option value="auto">Wypożyczalnia aut</option>
@@ -833,8 +852,9 @@ export default function LandingPage() {
 
                     <div className="space-y-2 pb-2">
                       <label htmlFor="service" className="text-sm font-medium text-slate-300">Która usługa Cię najbardziej interesuje?</label>
-                      <select 
+                      <select
                           id="service"
+                          name="service"
                           value={selectedService}
                           onChange={(e) => setSelectedService(e.target.value)}
                           className="flex h-12 w-full rounded-md border border-slate-800 bg-black/40 px-3 py-2 text-sm text-slate-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 transition-colors"
