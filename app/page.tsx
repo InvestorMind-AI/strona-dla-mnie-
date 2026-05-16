@@ -55,16 +55,13 @@ export default function LandingPage() {
     e.preventDefault()
     setFormState("submitting")
     const data = Object.fromEntries(new FormData(e.currentTarget))
-    const webhookUrl = process.env.NEXT_PUBLIC_FORM_WEBHOOK_URL
     try {
-      if (webhookUrl) {
-        const res = await fetch(webhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        })
-        if (!res.ok) throw new Error("webhook error")
-      }
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) throw new Error("send failed")
       setFormState("success")
     } catch {
       setFormState("error")
